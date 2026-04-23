@@ -237,11 +237,28 @@ namespace SharpPak
             if (isNet40)
             {
                 // Retrieve the install root path for the framework
-                string installRoot = Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\.NetFramework", false).GetValue("InstallRoot").ToString();
+                var frameworkKey = Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\.NetFramework", false);
+                if (frameworkKey == null)
+                    UsageError("Cannot open registry key Software\\Microsoft\\.NetFramework.");
+
+                var installRootValue = frameworkKey.GetValue("InstallRoot") as string;
+                if (string.IsNullOrWhiteSpace(installRootValue))
+                    UsageError("Cannot read .Net Framework InstallRoot from registry.");
+
+                string installRoot = Path.GetFullPath(installRootValue);
+                if (!Path.IsPathRooted(installRoot) || !Directory.Exists(installRoot))
+                    UsageError(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Invalid .Net Framework InstallRoot path [{0}] ", installRoot));
+
                 var directorties = Directory.GetDirectories(installRoot, "v4.*");
                 if (directorties.Length == 0)
                     UsageError(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Cannot found any .Net 4.0 directory from [{0}] ", installRoot));
-                merge.SetTargetPlatform("v4", directorties[0]);                
+
+                var frameworkV4Path = Path.GetFullPath(directorties[0]);
+                var installRootWithSeparator = installRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                if (!frameworkV4Path.StartsWith(installRootWithSeparator, StringComparison.OrdinalIgnoreCase))
+                    UsageError(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Invalid .Net 4.0 directory [{0}] ", frameworkV4Path));
+
+                merge.SetTargetPlatform("v4", frameworkV4Path);                
             }
 
             merge.Merge();
