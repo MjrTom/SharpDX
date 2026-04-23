@@ -246,7 +246,10 @@ namespace SharpPak
                     UsageError("Cannot read .Net Framework InstallRoot from registry.");
 
                 string installRoot = Path.GetFullPath(installRootValue);
-                if (!Path.IsPathRooted(installRoot) || !Directory.Exists(installRoot))
+                var windowsDirectory = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+                var frameworkBasePath = Path.GetFullPath(Path.Combine(windowsDirectory, "Microsoft.NET"));
+                var frameworkBasePathWithSeparator = frameworkBasePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                if (!Path.IsPathRooted(installRoot) || !Directory.Exists(installRoot) || !installRoot.StartsWith(frameworkBasePathWithSeparator, StringComparison.OrdinalIgnoreCase))
                     UsageError(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Invalid .Net Framework InstallRoot path [{0}] ", installRoot));
 
                 var directorties = Directory.GetDirectories(installRoot, "v4.*");
